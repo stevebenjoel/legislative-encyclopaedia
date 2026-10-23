@@ -10,6 +10,7 @@ export const publicEnv = {
 };
 
 export const serverEnv = {
+  databaseUrl: read("DATABASE_URL"),
   appwriteApiKey: read("APPWRITE_API_KEY"),
   databaseId: read("APPWRITE_DATABASE_ID"),
   legislationCollectionId: read("APPWRITE_LEGISLATION_COLLECTION_ID"),

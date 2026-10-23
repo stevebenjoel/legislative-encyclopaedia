@@ -1,0 +1,1 @@
+export function StatusBadge({status}:{status:string}){const tone=status==="VERIFIED"?"verified":status==="PROVISIONAL"?"provisional":status==="DISPUTED"?"disputed":"";return <span className={`badge ${tone}`}>{status.replaceAll("_"," ")}</span>}

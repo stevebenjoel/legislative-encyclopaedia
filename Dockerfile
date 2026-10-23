@@ -7,12 +7,14 @@ RUN corepack enable
 
 FROM base AS dependencies
 WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml prisma.config.ts ./
+COPY prisma ./prisma
 RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
+COPY --from=dependencies /app/src/generated ./src/generated
 COPY . .
 
 # NEXT_PUBLIC_* values are compiled into the client bundle by Next.js.

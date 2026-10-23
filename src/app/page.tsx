@@ -1,36 +1,7 @@
-import { isAppwriteConfigured } from "@/config/env";
+import Link from "next/link";
+import { ArrowRight, Plus } from "lucide-react";
+import { DemoBanner } from "@/components/ui/demo-banner";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { dashboardMetrics, demoBills } from "@/lib/demo-data";
 
-const checks = [
-  ["Application framework", "Next.js 16 + TypeScript"],
-  ["Production runtime", "Docker / Coolify"],
-  ["Backend services", "Appwrite"],
-  ["Deployment health", "/api/health"],
-] as const;
-
-export default function Home() {
-  return (
-    <main>
-      <section className="hero">
-        <p className="eyebrow">LEGISLATIVE ENCYCLOPAEDIA</p>
-        <h1>Build environment ready.</h1>
-        <p className="lede">
-          The production foundation is in place. Domain routing and live Appwrite
-          resources can be connected when their details are available.
-        </p>
-        <div className="status" aria-live="polite">
-          <span className={isAppwriteConfigured ? "dot ready" : "dot"} />
-          Appwrite {isAppwriteConfigured ? "environment detected" : "awaiting configuration"}
-        </div>
-      </section>
-
-      <section className="grid" aria-label="Environment summary">
-        {checks.map(([label, value]) => (
-          <article key={label}>
-            <p>{label}</p>
-            <strong>{value}</strong>
-          </article>
-        ))}
-      </section>
-    </main>
-  );
-}
+export default function Dashboard(){return <main><div className="page-header"><div><p className="eyebrow">Federal legislative workspace</p><h1>Intelligence dashboard</h1><p className="subtitle">A source-aware view of legislative activity, verification work and parliamentary operations across Nigeria&apos;s federal chambers.</p></div><Link className="button" href="/bills/new"><Plus size={15}/>Register bill</Link></div><DemoBanner/><section className="metric-grid" aria-label="Key metrics">{dashboardMetrics.map(m=><article className="metric-card" key={m.label}><div className="metric-label">{m.label}</div><div className="metric-value">{m.value}</div><div className="metric-change">{m.change}</div></article>)}</section><div className="dashboard-grid"><section className="panel"><div className="panel-header"><h2>Legislative pipeline</h2><Link className="panel-link" href="/bills">View all bills <ArrowRight size={12}/></Link></div><div className="panel-body">{demoBills.map(b=><Link className="bill-row" key={b.id} href={`/bills/${b.id}`}><div><p className="bill-number">{b.number} · {b.chamber}</p><h3 className="bill-title">{b.title}</h3><p className="bill-meta">{b.stage} · Updated {b.updated}</p></div><div><span className="bill-meta">{b.progress}% progression</span><div className="progress"><span style={{width:`${b.progress}%`}}/></div></div><StatusBadge status={b.verification}/></Link>)}</div></section><aside className="panel"><div className="panel-header"><h2>Verification queue</h2><Link className="panel-link" href="/knowledge">Open register</Link></div><div className="panel-body activity-list">{[{t:"Standing Order edition review",d:"Senate procedural references remain provisional."},{t:"Evidence link required",d:"Two bill events have no authenticated source."},{t:"Constitution source review",d:"Amendment consolidation awaits legal sign-off."},{t:"Committee record update",d:"Reporting date requires confirmation."}].map(x=><div className="activity" key={x.t}><span className="activity-dot"/><strong>{x.t}</strong><p>{x.d}</p></div>)}</div></aside></div></main>}

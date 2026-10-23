@@ -20,6 +20,7 @@ build/
 .eslintcache
 *.tsbuildinfo
 .pnpm-store/
+src/generated/prisma/
 
 # operating systems and editors
 .DS_Store

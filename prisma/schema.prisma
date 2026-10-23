@@ -1,0 +1,707 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum InstitutionType {
+  PLATFORM
+  NATIONAL_ASSEMBLY
+  SENATE
+  HOUSE_OF_REPRESENTATIVES
+  STATE_ASSEMBLY
+  CIVIL_SOCIETY
+  RESEARCH_ORGANISATION
+  EDUCATIONAL_INSTITUTION
+}
+
+enum ChamberCode {
+  SENATE
+  HOUSE
+  JOINT
+  NONE
+}
+
+enum PlatformRole {
+  SUPER_ADMIN
+  INSTITUTION_ADMIN
+  LEGISLATOR
+  LEGISLATIVE_CLERK
+  COMMITTEE_CHAIRPERSON
+  COMMITTEE_SECRETARY
+  LEGISLATIVE_RESEARCHER
+  LEGAL_ADVISER
+  POLICY_ANALYST
+  ACADEMY_INSTRUCTOR
+  ACADEMY_STUDENT
+  CIVIL_SOCIETY_REPRESENTATIVE
+  REGISTERED_CITIZEN
+  DATA_VERIFICATION_OFFICER
+}
+
+enum AccountStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum VerificationStatus {
+  VERIFIED
+  PROVISIONAL
+  UNVERIFIED
+  DISPUTED
+  SUPERSEDED
+}
+
+enum AccessLevel {
+  PUBLIC
+  REGISTERED
+  INSTITUTIONAL
+  RESTRICTED
+  CONFIDENTIAL
+}
+
+enum BillType {
+  ORDINARY
+  SECTION_59_MONEY
+  SECTION_9_CONSTITUTION_ALTERATION
+  SECTION_8_STATE_CREATION_OR_BOUNDARY
+}
+
+enum BillStatus {
+  DRAFT
+  REGISTERED
+  IN_PROGRESS
+  PASSED_ORIGINATING_CHAMBER
+  AWAITING_CONCURRENCE
+  HARMONISATION
+  PRESENTED_FOR_ASSENT
+  ASSENTED
+  ASSENT_WITHHELD
+  ENACTMENT_VERIFIED
+  NEGATIVED
+  WITHDRAWN
+  LAPSED
+}
+
+enum LegislativeEventType {
+  REGISTERED
+  NOTICE_PUBLISHED
+  FIRST_READING
+  SECOND_READING_PASSED
+  SECOND_READING_NEGATIVED
+  COMMITTEE_REFERRED
+  HEARING_SCHEDULED
+  HEARING_HELD
+  COMMITTEE_REPORT_SUBMITTED
+  COMMITTEE_OF_WHOLE_CONSIDERED
+  REPORT_ADOPTED
+  THIRD_READING_PASSED
+  THIRD_READING_NEGATIVED
+  TRANSMITTED_TO_OTHER_CHAMBER
+  CONCURRENCE_RECORDED
+  CONFERENCE_REQUESTED
+  CONFERENCE_REPORT_ADOPTED
+  ENGROSSED
+  PRESENTED_FOR_ASSENT
+  ASSENT_GRANTED
+  ASSENT_WITHHELD
+  VETO_OVERRIDE_PASSED
+  ENACTMENT_VERIFIED
+  WITHDRAWN
+  LAPSED
+  RECOMMITTED
+}
+
+enum DocumentType {
+  CONSTITUTION
+  CONSTITUTIONAL_ALTERATION
+  ACT
+  BILL
+  STANDING_ORDER
+  COMMITTEE_REPORT
+  HANSARD
+  ORDER_PAPER
+  VOTES_AND_PROCEEDINGS
+  JUDICIAL_DECISION
+  POLICY_DOCUMENT
+  RESEARCH_PUBLICATION
+  EVIDENCE
+  OTHER
+}
+
+enum ReviewStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+model Institution {
+  id          String          @id @default(cuid())
+  name        String
+  slug        String          @unique
+  type        InstitutionType
+  description String?
+  isOfficial  Boolean         @default(false)
+  parentId    String?
+  parent      Institution?    @relation("InstitutionTree", fields: [parentId], references: [id])
+  children    Institution[]   @relation("InstitutionTree")
+  chambers    Chamber[]
+  sessions    AssemblySession[]
+  roles       RoleAssignment[]
+  committees  Committee[]
+  documents   SourceDocument[]
+  permissions InstitutionalPermission[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model Chamber {
+  id            String             @id @default(cuid())
+  institutionId String
+  institution   Institution        @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  code          ChamberCode
+  name          String
+  bills         Bill[]
+  events        LegislativeEvent[]
+  committees    Committee[]
+  standingOrders StandingOrderEdition[]
+  @@unique([institutionId, code])
+}
+
+model AssemblySession {
+  id            String      @id @default(cuid())
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  name          String
+  number        Int?
+  startsOn      DateTime
+  endsOn        DateTime?
+  isCurrent     Boolean     @default(false)
+  bills         Bill[]
+  @@index([institutionId, isCurrent])
+}
+
+model User {
+  id               String           @id @default(cuid())
+  appwriteUserId   String           @unique
+  email            String           @unique
+  displayName      String
+  status           AccountStatus    @default(INVITED)
+  emailVerified    Boolean          @default(false)
+  mfaEnabled       Boolean          @default(false)
+  roles            RoleAssignment[]
+  recordedEvents   LegislativeEvent[] @relation("EventRecorder")
+  ruleApprovals    RuleApproval[]
+  auditEntries     AuditLog[]        @relation("AuditActor")
+  notifications    Notification[]
+  enrollments      Enrollment[]
+  certificates     Certificate[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model RoleAssignment {
+  id            String       @id @default(cuid())
+  userId        String
+  institutionId String
+  role          PlatformRole
+  scopes        Json?
+  grantedById   String?
+  grantedAt     DateTime     @default(now())
+  expiresAt     DateTime?
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution   Institution  @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  @@unique([userId, institutionId, role])
+  @@index([institutionId, role])
+}
+
+model Sponsor {
+  id            String        @id @default(cuid())
+  displayName   String
+  title         String?
+  chamber       ChamberCode
+  officialId    String?
+  verification  VerificationStatus @default(UNVERIFIED)
+  billLinks     BillSponsor[]
+  createdAt     DateTime      @default(now())
+}
+
+model Bill {
+  id                    String        @id @default(cuid())
+  chamberId             String
+  sessionId             String
+  billNumber            String
+  title                 String
+  shortTitle            String?
+  longTitle             String?
+  classification        BillType
+  status                BillStatus    @default(DRAFT)
+  explanatoryMemorandum String?
+  policyObjectives      String?
+  financialImplications String?
+  introducedOn          DateTime?
+  verification          VerificationStatus @default(UNVERIFIED)
+  isDemonstration       Boolean       @default(false)
+  chamber               Chamber       @relation(fields: [chamberId], references: [id])
+  session               AssemblySession @relation(fields: [sessionId], references: [id])
+  sponsors              BillSponsor[]
+  versions              BillVersion[]
+  events                LegislativeEvent[]
+  referrals             Referral[]
+  amendments            Amendment[]
+  votes                 ChamberVote[]
+  citations             Citation[]
+  aiAssessments         AIAssessment[]
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  @@unique([chamberId, sessionId, billNumber])
+  @@index([status, verification])
+  @@index([title])
+}
+
+model BillSponsor {
+  billId    String
+  sponsorId String
+  isPrimary Boolean @default(false)
+  bill      Bill    @relation(fields: [billId], references: [id], onDelete: Cascade)
+  sponsor   Sponsor @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
+  @@id([billId, sponsorId])
+}
+
+model BillVersion {
+  id             String   @id @default(cuid())
+  billId         String
+  versionNumber  Int
+  label          String
+  contentText    String?
+  sourceDocumentId String?
+  integrityHash  String?
+  createdAt      DateTime @default(now())
+  bill           Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  sourceDocument SourceDocument? @relation(fields: [sourceDocumentId], references: [id])
+  @@unique([billId, versionNumber])
+}
+
+model LegislativeEvent {
+  id                 String       @id @default(cuid())
+  billId             String
+  chamberId          String
+  recorderId         String
+  eventType          LegislativeEventType
+  eventDate          DateTime
+  notes              String?
+  verification       VerificationStatus @default(UNVERIFIED)
+  standingOrderId    String?
+  auditReference     String
+  recordedAt         DateTime     @default(now())
+  bill               Bill         @relation(fields: [billId], references: [id], onDelete: Cascade)
+  chamber            Chamber      @relation(fields: [chamberId], references: [id])
+  recorder           User         @relation("EventRecorder", fields: [recorderId], references: [id])
+  standingOrder      StandingOrderEdition? @relation(fields: [standingOrderId], references: [id])
+  evidence           EventEvidence[]
+  @@index([billId, eventDate])
+  @@index([eventType, verification])
+}
+
+model EventEvidence {
+  id               String @id @default(cuid())
+  eventId          String
+  sourceDocumentId String
+  description      String?
+  event            LegislativeEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  sourceDocument   SourceDocument   @relation(fields: [sourceDocumentId], references: [id])
+  @@unique([eventId, sourceDocumentId])
+}
+
+model SourceDocument {
+  id               String       @id @default(cuid())
+  institutionId    String?
+  documentId       String       @unique
+  title            String
+  type             DocumentType
+  publisher        String?
+  sourceUrl        String?
+  publicationDate  DateTime?
+  retrievalDate    DateTime?
+  effectiveDate    DateTime?
+  verification     VerificationStatus @default(UNVERIFIED)
+  accessLevel      AccessLevel   @default(PUBLIC)
+  currentVersion   Int          @default(1)
+  isDemonstration  Boolean      @default(false)
+  institution      Institution? @relation(fields: [institutionId], references: [id])
+  versions         DocumentVersion[]
+  billVersions     BillVersion[]
+  eventEvidence    EventEvidence[]
+  citations        Citation[]
+  submissions      Submission[]
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  @@index([type, verification])
+}
+
+model DocumentVersion {
+  id               String   @id @default(cuid())
+  sourceDocumentId String
+  versionNumber    Int
+  storageFileId    String?
+  mimeType         String?
+  fileSize         BigInt?
+  integrityHash    String
+  extractedText    String?
+  changeSummary    String?
+  createdAt        DateTime @default(now())
+  sourceDocument   SourceDocument @relation(fields: [sourceDocumentId], references: [id], onDelete: Cascade)
+  @@unique([sourceDocumentId, versionNumber])
+}
+
+model StandingOrderEdition {
+  id            String       @id @default(cuid())
+  chamberId     String
+  title         String
+  edition       String
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?
+  verification  VerificationStatus @default(PROVISIONAL)
+  sourceUrl     String?
+  chamber       Chamber      @relation(fields: [chamberId], references: [id])
+  rules         RuleDefinition[]
+  events        LegislativeEvent[]
+  @@unique([chamberId, edition])
+}
+
+model RuleDefinition {
+  id             String @id @default(cuid())
+  standingOrderId String
+  code           String
+  title          String
+  description    String
+  conditions     Json
+  effects        Json
+  enabled        Boolean @default(false)
+  standingOrder  StandingOrderEdition @relation(fields: [standingOrderId], references: [id], onDelete: Cascade)
+  approvals      RuleApproval[]
+  @@unique([standingOrderId, code])
+}
+
+model RuleApproval {
+  id               String @id @default(cuid())
+  ruleDefinitionId String
+  approverId       String
+  status           ReviewStatus @default(PENDING_REVIEW)
+  notes            String?
+  decidedAt        DateTime?
+  ruleDefinition   RuleDefinition @relation(fields: [ruleDefinitionId], references: [id], onDelete: Cascade)
+  approver         User @relation(fields: [approverId], references: [id])
+}
+
+model Committee {
+  id            String @id @default(cuid())
+  institutionId String
+  chamberId     String?
+  name          String
+  slug          String
+  mandate       String?
+  isActive      Boolean @default(true)
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  chamber       Chamber? @relation(fields: [chamberId], references: [id])
+  referrals     Referral[]
+  hearings      Hearing[]
+  reports       CommitteeReport[]
+  @@unique([institutionId, slug])
+}
+
+model Referral {
+  id                 String @id @default(cuid())
+  billId             String
+  committeeId        String
+  referralDate       DateTime
+  referralAuthority  String
+  termsOfReference   String?
+  expectedReportDate DateTime?
+  verification       VerificationStatus @default(UNVERIFIED)
+  bill               Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
+  committee          Committee @relation(fields: [committeeId], references: [id])
+  hearings           Hearing[]
+  reports            CommitteeReport[]
+  @@index([committeeId, expectedReportDate])
+}
+
+model Hearing {
+  id            String @id @default(cuid())
+  committeeId   String
+  referralId    String?
+  title         String
+  scheduledFor  DateTime
+  venue         String?
+  publicNotice  String?
+  status        String
+  verification  VerificationStatus @default(UNVERIFIED)
+  committee     Committee @relation(fields: [committeeId], references: [id])
+  referral      Referral? @relation(fields: [referralId], references: [id])
+  submissions   Submission[]
+}
+
+model Submission {
+  id               String @id @default(cuid())
+  hearingId        String
+  sourceDocumentId String?
+  submitterName    String
+  submitterType    String
+  title            String
+  consentRecorded  Boolean @default(false)
+  moderationStatus ReviewStatus @default(PENDING_REVIEW)
+  hearing          Hearing @relation(fields: [hearingId], references: [id], onDelete: Cascade)
+  sourceDocument   SourceDocument? @relation(fields: [sourceDocumentId], references: [id])
+  createdAt        DateTime @default(now())
+}
+
+model CommitteeReport {
+  id             String @id @default(cuid())
+  committeeId    String
+  referralId     String?
+  title          String
+  findings       String?
+  recommendations String?
+  minorityOpinion String?
+  verification   VerificationStatus @default(UNVERIFIED)
+  committee      Committee @relation(fields: [committeeId], references: [id])
+  referral       Referral? @relation(fields: [referralId], references: [id])
+  createdAt      DateTime @default(now())
+}
+
+model Amendment {
+  id             String @id @default(cuid())
+  billId         String
+  clauseReference String
+  proposedText   String
+  rationale      String?
+  status         ReviewStatus @default(DRAFT)
+  bill           Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
+}
+
+model ChamberVote {
+  id            String @id @default(cuid())
+  billId        String
+  chamber       ChamberCode
+  motion        String
+  heldOn        DateTime
+  votesFor      Int?
+  votesAgainst  Int?
+  abstentions   Int?
+  result        String
+  verification  VerificationStatus @default(UNVERIFIED)
+  bill          Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
+}
+
+model ConferenceReport {
+  id               String @id @default(cuid())
+  title            String
+  issues            String?
+  harmonisedText    String?
+  agreementStatus   String
+  senateAdoptedOn   DateTime?
+  houseAdoptedOn    DateTime?
+  verification      VerificationStatus @default(UNVERIFIED)
+  createdAt         DateTime @default(now())
+}
+
+model PresentationForAssent {
+  id              String @id @default(cuid())
+  billReference   String
+  presentedOn     DateTime
+  documentReference String?
+  verification    VerificationStatus @default(UNVERIFIED)
+  decisions       AssentDecision[]
+}
+
+model AssentDecision {
+  id             String @id @default(cuid())
+  presentationId String
+  decision       String
+  decidedOn      DateTime?
+  notes          String?
+  verification   VerificationStatus @default(UNVERIFIED)
+  presentation   PresentationForAssent @relation(fields: [presentationId], references: [id], onDelete: Cascade)
+  actRecord       ActRecord?
+}
+
+model ActRecord {
+  id               String @id @default(cuid())
+  assentDecisionId String @unique
+  actNumber        String?
+  title            String
+  commencementDate DateTime?
+  gazetteReference String?
+  verification     VerificationStatus @default(UNVERIFIED)
+  assentDecision   AssentDecision @relation(fields: [assentDecisionId], references: [id])
+}
+
+model PolicyProgram {
+  id          String @id @default(cuid())
+  name        String
+  responsibleMda String?
+  description String?
+  evaluations Evaluation[]
+  budgetLines BudgetLine[]
+}
+
+model Evaluation {
+  id               String @id @default(cuid())
+  policyProgramId  String
+  title            String
+  framework        Json
+  findings         Json?
+  verification     VerificationStatus @default(UNVERIFIED)
+  policyProgram    PolicyProgram @relation(fields: [policyProgramId], references: [id], onDelete: Cascade)
+}
+
+model BudgetLine {
+  id              String @id @default(cuid())
+  policyProgramId String?
+  fiscalYear      Int
+  mda             String
+  code            String
+  description     String
+  appropriated    Decimal @db.Decimal(18, 2)
+  released        Decimal? @db.Decimal(18, 2)
+  utilised        Decimal? @db.Decimal(18, 2)
+  policyProgram   PolicyProgram? @relation(fields: [policyProgramId], references: [id])
+  monitoring      MDAMonitoringRecord[]
+  @@unique([fiscalYear, mda, code])
+}
+
+model MDAMonitoringRecord {
+  id           String @id @default(cuid())
+  budgetLineId String?
+  mda          String
+  title        String
+  reportingDate DateTime
+  progress     Decimal? @db.Decimal(5, 2)
+  findings     String?
+  verification VerificationStatus @default(UNVERIFIED)
+  budgetLine   BudgetLine? @relation(fields: [budgetLineId], references: [id])
+}
+
+model AIAssessment {
+  id             String @id @default(cuid())
+  billId         String?
+  assessmentType String
+  modelProvider  String
+  modelName      String
+  promptHash     String
+  result         Json
+  status         ReviewStatus @default(PENDING_REVIEW)
+  reviewedById   String?
+  createdAt      DateTime @default(now())
+  bill           Bill? @relation(fields: [billId], references: [id])
+  citations      Citation[]
+}
+
+model Citation {
+  id               String @id @default(cuid())
+  sourceDocumentId String
+  billId           String?
+  aiAssessmentId   String?
+  locator          String
+  quotation        String?
+  sourceDocument   SourceDocument @relation(fields: [sourceDocumentId], references: [id])
+  bill             Bill? @relation(fields: [billId], references: [id])
+  aiAssessment     AIAssessment? @relation(fields: [aiAssessmentId], references: [id])
+}
+
+model AuditLog {
+  id            String @id @default(cuid())
+  actorId       String?
+  institutionId String?
+  action        String
+  entityType    String
+  entityId      String
+  beforeState   Json?
+  afterState    Json?
+  ipHash        String?
+  createdAt     DateTime @default(now())
+  actor         User? @relation("AuditActor", fields: [actorId], references: [id])
+  @@index([entityType, entityId, createdAt])
+}
+
+model Course {
+  id          String @id @default(cuid())
+  title       String
+  slug        String @unique
+  description String?
+  published   Boolean @default(false)
+  lessons     Lesson[]
+  assessments Assessment[]
+  enrollments Enrollment[]
+  certificates Certificate[]
+}
+
+model Lesson {
+  id        String @id @default(cuid())
+  courseId  String
+  title     String
+  position  Int
+  content   String?
+  course    Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  @@unique([courseId, position])
+}
+
+model Assessment {
+  id        String @id @default(cuid())
+  courseId  String
+  title     String
+  questions Json
+  passMark  Int
+  course    Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model Enrollment {
+  id        String @id @default(cuid())
+  courseId  String
+  userId    String
+  progress  Int @default(0)
+  enrolledAt DateTime @default(now())
+  completedAt DateTime?
+  course    Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([courseId, userId])
+}
+
+model Certificate {
+  id               String @id @default(cuid())
+  courseId         String
+  userId           String
+  verificationCode String @unique
+  issuer           String
+  issuedAt         DateTime @default(now())
+  course           Course @relation(fields: [courseId], references: [id])
+  user             User @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id        String @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, readAt])
+}
+
+model InstitutionalPermission {
+  id            String @id @default(cuid())
+  institutionId String
+  key           String
+  description   String?
+  enabled       Boolean @default(false)
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  @@unique([institutionId, key])
+}

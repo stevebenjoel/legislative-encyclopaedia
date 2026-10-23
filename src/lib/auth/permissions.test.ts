@@ -1,0 +1,3 @@
+import { describe, expect, it } from "vitest";
+import { can, canAccessInstitution } from "./permissions";
+describe("role permissions",()=>{it("does not grant citizens institutional write access",()=>{expect(can("REGISTERED_CITIZEN","bill:create")).toBe(false);expect(can("REGISTERED_CITIZEN","bill:read")).toBe(true)});it("isolates institutional administrators",()=>{expect(canAccessInstitution("INSTITUTION_ADMIN","senate","house")).toBe(false);expect(canAccessInstitution("INSTITUTION_ADMIN","senate","senate")).toBe(true)});it("allows super administrators to cross institution boundaries",()=>{expect(canAccessInstitution("SUPER_ADMIN","platform","senate")).toBe(true)})});

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAppwriteConfigured } from "@/config/env";
+import { isAppwriteConfigured, serverEnv } from "@/config/env";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +9,7 @@ export function GET() {
       status: "ok",
       service: "legislative-encyclopaedia",
       appwriteConfigured: isAppwriteConfigured,
+      databaseConfigured: Boolean(serverEnv.databaseUrl),
       timestamp: new Date().toISOString(),
     },
     { headers: { "Cache-Control": "no-store" } },
