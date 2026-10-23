@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# production
+build/
+
+# local environment files (the template remains tracked)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# logs and tooling
+*.log
+.eslintcache
+*.tsbuildinfo
+.pnpm-store/
+
+# operating systems and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

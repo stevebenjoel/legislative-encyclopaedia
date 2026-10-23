@@ -1,0 +1,123 @@
+:root {
+  --ink: #10251f;
+  --paper: #f2efe5;
+  --cream: #fffdf7;
+  --green: #194f3d;
+  --gold: #c79a49;
+  --line: rgba(16, 37, 31, 0.18);
+}
+
+* { box-sizing: border-box; }
+
+html { color-scheme: light; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 85% 12%, rgba(199, 154, 73, 0.18), transparent 28rem),
+    linear-gradient(135deg, var(--paper), var(--cream));
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+main {
+  width: min(1120px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: clamp(72px, 12vw, 150px) 0 64px;
+}
+
+.hero { max-width: 780px; }
+
+.eyebrow,
+.grid p,
+.status {
+  font-family: Arial, Helvetica, sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.eyebrow {
+  color: var(--green);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+h1 {
+  max-width: 720px;
+  margin: 18px 0 22px;
+  font-size: clamp(3.25rem, 9vw, 7.4rem);
+  font-weight: 500;
+  letter-spacing: -0.06em;
+  line-height: 0.9;
+}
+
+.lede {
+  max-width: 670px;
+  margin: 0;
+  font-size: clamp(1.15rem, 2.3vw, 1.55rem);
+  line-height: 1.55;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 34px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 0 4px rgba(199, 154, 73, 0.16);
+}
+
+.dot.ready {
+  background: #2c8b62;
+  box-shadow: 0 0 0 4px rgba(44, 139, 98, 0.16);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-top: clamp(80px, 12vw, 150px);
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.grid article {
+  min-height: 150px;
+  padding: 24px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.grid p {
+  margin: 0 0 26px;
+  color: rgba(16, 37, 31, 0.6);
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.grid strong {
+  font-size: 1.15rem;
+  font-weight: 500;
+}
+
+@media (max-width: 760px) {
+  .grid { grid-template-columns: 1fr 1fr; }
+  main { width: min(100% - 28px, 1120px); }
+}
+
+@media (max-width: 460px) {
+  .grid { grid-template-columns: 1fr; }
+}
