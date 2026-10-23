@@ -141,6 +141,56 @@ enum ReviewStatus {
   REJECTED
 }
 
+enum WorkflowTaskStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  AWAITING_REVIEW
+  RETURNED_FOR_CORRECTION
+  COMPLETED
+  CANCELLED
+}
+
+enum WorkflowPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum ApprovalStatus {
+  DRAFT
+  SUBMITTED_FOR_REVIEW
+  REVIEW_IN_PROGRESS
+  CORRECTIONS_REQUESTED
+  RESUBMITTED
+  APPROVED
+  ARCHIVED
+}
+
+enum AIArtifactType {
+  BILL
+  MOTION
+  DEBATE_BRIEF
+  CONSTITUTIONAL_ANALYSIS
+  BILL_SCRUTINY
+  RESEARCH_BRIEF
+  COMMITTEE_REPORT
+  OVERSIGHT_QUESTIONS
+  DOCUMENT_COMPARISON
+}
+
+enum AIReviewDecision {
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+  REJECTED
+}
+
+enum CorrespondenceDirection {
+  INCOMING
+  OUTGOING
+}
+
 model Institution {
   id          String          @id @default(cuid())
   name        String
@@ -157,6 +207,16 @@ model Institution {
   committees  Committee[]
   documents   SourceDocument[]
   permissions InstitutionalPermission[]
+  aiConversations AIConversation[]
+  metricDefinitions MetricDefinition[]
+  legislativeMetrics LegislativeMetric[]
+  memberProfiles MemberProfile[]
+  workflowTasks WorkflowTask[]
+  meetings Meeting[]
+  approvals DocumentApproval[]
+  correspondence Correspondence[]
+  departmentWorkspaces DepartmentWorkspace[]
+  auditEvents AuditEvent[]
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 }
@@ -202,6 +262,15 @@ model User {
   notifications    Notification[]
   enrollments      Enrollment[]
   certificates     Certificate[]
+  aiConversations  AIConversation[]
+  aiDraftingSessions AIDraftingSession[]
+  aiReviews        AIReview[]
+  assignedTasks    TaskAssignment[]
+  taskComments     TaskComment[]
+  meetingParticipation MeetingParticipant[]
+  recordedMinutes MeetingMinutes[]
+  approvalSteps    ApprovalStep[]
+  auditEvents      AuditEvent[] @relation("AuditEventActor")
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 }
@@ -258,6 +327,8 @@ model Bill {
   votes                 ChamberVote[]
   citations             Citation[]
   aiAssessments         AIAssessment[]
+  aiDraftingSessions    AIDraftingSession[]
+  performanceObservations MetricObservation[]
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
   @@unique([chamberId, sessionId, billNumber])
@@ -340,6 +411,8 @@ model SourceDocument {
   eventEvidence    EventEvidence[]
   citations        Citation[]
   submissions      Submission[]
+  aiDocuments      AIDocument[]
+  approvalWorkflows DocumentApproval[]
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
   @@index([type, verification])
@@ -413,6 +486,9 @@ model Committee {
   referrals     Referral[]
   hearings      Hearing[]
   reports       CommitteeReport[]
+  activities    CommitteeActivity[]
+  workflowTasks WorkflowTask[]
+  meetings      Meeting[]
   @@unique([institutionId, slug])
 }
 
@@ -694,6 +770,311 @@ model Notification {
   createdAt DateTime @default(now())
   user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([userId, readAt])
+}
+
+model AIConversation {
+  id String @id @default(cuid())
+  institutionId String
+  ownerId String
+  title String
+  messages Json @default("[]")
+  retentionUntil DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  documents AIDocument[]
+  @@index([institutionId, ownerId])
+}
+
+model AIDocument {
+  id String @id @default(cuid())
+  conversationId String?
+  sourceDocumentId String?
+  type AIArtifactType
+  title String
+  content Json
+  isDraft Boolean @default(true)
+  createdAt DateTime @default(now())
+  conversation AIConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  sourceDocument SourceDocument? @relation(fields: [sourceDocumentId], references: [id])
+  reviews AIReview[]
+  researchBrief AIResearchBrief?
+  draftingSessions AIDraftingSession[]
+}
+
+model AIDraftingSession {
+  id String @id @default(cuid())
+  ownerId String
+  billId String?
+  outputDocumentId String?
+  taskType AIArtifactType
+  inputs Json
+  status ReviewStatus @default(DRAFT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  owner User @relation(fields: [ownerId], references: [id])
+  bill Bill? @relation(fields: [billId], references: [id])
+  outputDocument AIDocument? @relation(fields: [outputDocumentId], references: [id])
+}
+
+model AIResearchBrief {
+  id String @id @default(cuid())
+  aiDocumentId String @unique
+  scope String
+  sourcesRequired Boolean @default(true)
+  aiDocument AIDocument @relation(fields: [aiDocumentId], references: [id], onDelete: Cascade)
+}
+
+model AIReview {
+  id String @id @default(cuid())
+  aiDocumentId String
+  reviewerId String
+  decision AIReviewDecision @default(PENDING)
+  notes String?
+  reviewedAt DateTime?
+  aiDocument AIDocument @relation(fields: [aiDocumentId], references: [id], onDelete: Cascade)
+  reviewer User @relation(fields: [reviewerId], references: [id])
+  @@unique([aiDocumentId, reviewerId])
+}
+
+model MetricDefinition {
+  id String @id @default(cuid())
+  institutionId String
+  key String
+  name String
+  methodology String
+  unit String
+  enabled Boolean @default(false)
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  observations MetricObservation[]
+  metrics LegislativeMetric[]
+  @@unique([institutionId, key])
+}
+
+model LegislativeMetric {
+  id String @id @default(cuid())
+  institutionId String
+  metricDefinitionId String
+  label String
+  reportingPeriod String
+  publishedValue Decimal? @db.Decimal(18, 4)
+  verification VerificationStatus @default(UNVERIFIED)
+  methodologyNote String?
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  metricDefinition MetricDefinition @relation(fields: [metricDefinitionId], references: [id])
+  @@index([institutionId, reportingPeriod])
+}
+
+model MetricObservation {
+  id String @id @default(cuid())
+  metricDefinitionId String
+  billId String?
+  periodStart DateTime
+  periodEnd DateTime
+  value Decimal @db.Decimal(18, 4)
+  verification VerificationStatus @default(UNVERIFIED)
+  exclusions Json?
+  metricDefinition MetricDefinition @relation(fields: [metricDefinitionId], references: [id], onDelete: Cascade)
+  bill Bill? @relation(fields: [billId], references: [id])
+  coverage DataCoverageRecord[]
+  @@index([metricDefinitionId, periodStart, periodEnd])
+}
+
+model DataCoverageRecord {
+  id String @id @default(cuid())
+  observationId String
+  eligibleRecords Int
+  includedRecords Int
+  missingRecords Int
+  limitations String?
+  observation MetricObservation @relation(fields: [observationId], references: [id], onDelete: Cascade)
+}
+
+model MemberProfile {
+  id String @id @default(cuid())
+  institutionId String
+  fullName String
+  chamber ChamberCode
+  state String?
+  constituency String?
+  legislativeTerm String?
+  verification VerificationStatus @default(UNVERIFIED)
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  @@index([institutionId, chamber, fullName])
+}
+
+model CommitteeActivity {
+  id String @id @default(cuid())
+  committeeId String
+  activityType String
+  occurredOn DateTime
+  description String
+  verification VerificationStatus @default(UNVERIFIED)
+  committee Committee @relation(fields: [committeeId], references: [id], onDelete: Cascade)
+}
+
+model PerformanceReport {
+  id String @id @default(cuid())
+  title String
+  reportType String
+  periodStart DateTime
+  periodEnd DateTime
+  methodology Json
+  isOfficial Boolean @default(false)
+  publishedAt DateTime?
+  corrections PerformanceCorrection[]
+}
+
+model PerformanceCorrection {
+  id String @id @default(cuid())
+  reportId String
+  reason String
+  previousValue Json
+  correctedValue Json
+  createdAt DateTime @default(now())
+  report PerformanceReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+}
+
+model WorkflowTask {
+  id String @id @default(cuid())
+  institutionId String
+  committeeId String?
+  title String
+  description String?
+  priority WorkflowPriority @default(NORMAL)
+  status WorkflowTaskStatus @default(NOT_STARTED)
+  dueAt DateTime?
+  completionEvidence String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  committee Committee? @relation(fields: [committeeId], references: [id])
+  assignments TaskAssignment[]
+  comments TaskComment[]
+  @@index([institutionId, status, dueAt])
+}
+
+model TaskAssignment {
+  id String @id @default(cuid())
+  taskId String
+  userId String
+  assignedAt DateTime @default(now())
+  task WorkflowTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([taskId, userId])
+}
+
+model TaskComment {
+  id String @id @default(cuid())
+  taskId String
+  authorId String
+  body String
+  createdAt DateTime @default(now())
+  task WorkflowTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id])
+}
+
+model Meeting {
+  id String @id @default(cuid())
+  institutionId String
+  committeeId String?
+  title String
+  startsAt DateTime
+  venue String?
+  virtualLink String?
+  agenda Json?
+  isOfficialSitting Boolean @default(false)
+  accessLevel AccessLevel @default(INSTITUTIONAL)
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  committee Committee? @relation(fields: [committeeId], references: [id])
+  participants MeetingParticipant[]
+  minutes MeetingMinutes?
+}
+
+model MeetingParticipant {
+  id String @id @default(cuid())
+  meetingId String
+  userId String
+  attended Boolean?
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+  @@unique([meetingId, userId])
+}
+
+model MeetingMinutes {
+  id String @id @default(cuid())
+  meetingId String @unique
+  recorderId String
+  content Json
+  status ApprovalStatus @default(DRAFT)
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  recorder User @relation(fields: [recorderId], references: [id])
+}
+
+model DocumentApproval {
+  id String @id @default(cuid())
+  institutionId String
+  sourceDocumentId String
+  status ApprovalStatus @default(DRAFT)
+  currentStep Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  sourceDocument SourceDocument @relation(fields: [sourceDocumentId], references: [id])
+  steps ApprovalStep[]
+}
+
+model ApprovalStep {
+  id String @id @default(cuid())
+  approvalId String
+  reviewerId String
+  position Int
+  status ApprovalStatus @default(DRAFT)
+  comments String?
+  decidedAt DateTime?
+  approval DocumentApproval @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+  reviewer User @relation(fields: [reviewerId], references: [id])
+  @@unique([approvalId, position])
+}
+
+model Correspondence {
+  id String @id @default(cuid())
+  institutionId String
+  referenceNumber String
+  direction CorrespondenceDirection
+  subject String
+  classification AccessLevel @default(INSTITUTIONAL)
+  receivedOrSentAt DateTime
+  responseDueAt DateTime?
+  archivedAt DateTime?
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  @@unique([institutionId, referenceNumber])
+}
+
+model DepartmentWorkspace {
+  id String @id @default(cuid())
+  institutionId String
+  name String
+  slug String
+  description String?
+  enabled Boolean @default(true)
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  @@unique([institutionId, slug])
+}
+
+model AuditEvent {
+  id String @id @default(cuid())
+  institutionId String
+  actorId String?
+  eventType String
+  entityType String
+  entityId String
+  metadata Json?
+  occurredAt DateTime @default(now())
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  actor User? @relation("AuditEventActor", fields: [actorId], references: [id])
+  @@index([institutionId, entityType, entityId, occurredAt])
 }
 
 model InstitutionalPermission {

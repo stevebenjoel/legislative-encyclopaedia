@@ -1,7 +1,7 @@
 # Legislative Encyclopaedia
 
 LegisCore Nigeria is an independent legislative intelligence and parliamentary
-technology platform. The current milestone provides a working Phase 1 product
+technology platform. The current milestone provides a working Phase A product
 foundation with Next.js, TypeScript, Tailwind CSS, Appwrite identity/storage,
 PostgreSQL, Prisma ORM, and a Docker deployment designed for Coolify.
 
@@ -83,7 +83,11 @@ Implemented and tested:
 - Comprehensive initial Prisma schema covering the entities in the master brief.
 - Demonstration-only records with explicit non-official labels.
 - AI workspace safety boundary pending provider and corpus approval.
-- Upcoming modules are labelled as planned rather than presented as operational.
+- AI Copilot launcher, guarded research workspace and bill-drafting brief.
+- Performance dashboard with verification, coverage and exclusion disclosures.
+- Smart Workflow dashboard and tested task state-transition rules.
+- Unified relational models for AI artifacts and review, performance methodology,
+  member profiles, tasks, meetings, approvals, correspondence and audit events.
 
 Still dependent on external configuration or future milestones:
 
@@ -92,6 +96,7 @@ Still dependent on external configuration or future milestones:
 - Real legal-source ingestion and authentication.
 - Production document upload/malware scanning pipeline.
 - AI provider, embeddings, vector search and human-review operations.
+- Authenticated CRUD services for the new AI, workflow and performance records.
 - Oversight, budget, academy and citizen-engagement workflows.
 
 ## Coolify deployment (when ready)
