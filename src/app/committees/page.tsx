@@ -1,5 +1,4 @@
-import { CalendarDays, Plus } from "lucide-react";
-import { committees } from "@/lib/demo-data";
-import { DemoBanner } from "@/components/ui/demo-banner";
+import { CommitteeDirectory } from "@/components/committees/committee-directory";
+import { isAppwriteConfigured, serverEnv } from "@/config/env";
 export const metadata={title:"Parliamentary Committees"};
-export default function CommitteesPage(){return <main><div className="page-header"><div><p className="eyebrow">Committee operations</p><h1>Parliamentary committees</h1><p className="subtitle">Referral workspaces, conditional public hearings, evidence, reports and institutional access controls.</p></div><button className="button"><Plus size={15}/>New committee</button></div><DemoBanner/><section className="committee-grid">{committees.map(c=><article className="committee-card" key={c.name}><span className="badge">{c.chamber}</span><h2>{c.name}</h2><p>{c.status} workspace for referral tracking, hearing evidence and committee reporting.</p><div className="card-meta"><div><span>Active referrals</span><strong>{c.referrals}</strong></div><div><span>Scheduled hearings</span><strong>{c.hearings}</strong></div><div><span>Next meeting</span><strong><CalendarDays size={12}/> {c.next}</strong></div><div><span>Access</span><strong>Institution controlled</strong></div></div></article>)}</section></main>}
+export default function CommitteesPage(){return <main><div className="page-header"><div><p className="eyebrow">Committee operations</p><h1>Parliamentary committees</h1><p className="subtitle">Institution-scoped secretariat workspaces for meetings, referrals, assignments, evidence and reporting.</p></div></div><CommitteeDirectory configured={isAppwriteConfigured&&Boolean(serverEnv.databaseUrl)}/></main>}
