@@ -34,10 +34,11 @@ export function BillRegistrationForm({ configured }: { configured: boolean }) {
         if (!response.ok) throw new Error(payload.message ?? "Institutional access could not be loaded.");
         if (!active) return;
         setJwt(token.jwt);
-        setWorkspaces(payload.data);
-        setInstitutionId(payload.data[0]?.institution.id ?? "");
-        setMessage(payload.data.length ? "Select verified intake information before saving." : "Your account has no active institutional role.");
-        setError(payload.data.length === 0);
+        const permitted=(payload.data as Workspace[]).filter((item)=>["SUPER_ADMIN","INSTITUTION_ADMIN","LEGISLATOR","LEGISLATIVE_CLERK"].includes(item.role));
+        setWorkspaces(permitted);
+        setInstitutionId(permitted[0]?.institution.id ?? "");
+        setMessage(permitted.length ? "Select verified intake information before saving." : "Your account has no bill-registration role.");
+        setError(permitted.length === 0);
       } catch (caught) {
         if (!active) return;
         setError(true);

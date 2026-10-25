@@ -10,7 +10,6 @@ export async function GET(request: NextRequest) {
     const assignments = await getDatabase().roleAssignment.findMany({
       where: {
         user: { appwriteUserId, status: "ACTIVE" },
-        role: { in: ["SUPER_ADMIN", "INSTITUTION_ADMIN", "LEGISLATOR", "LEGISLATIVE_CLERK"] },
         OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
       orderBy: { institution: { name: "asc" } },
