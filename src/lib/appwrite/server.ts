@@ -38,3 +38,13 @@ export function createSessionAppwrite(sessionSecret: string) {
     storage: new Storage(client),
   };
 }
+
+export function createJwtAppwrite(jwt: string) {
+  const { endpoint, projectId } = requirePublicAppwriteEnv();
+  const client = new Client()
+    .setEndpoint(endpoint)
+    .setProject(projectId)
+    .setJWT(jwt);
+
+  return { client, account: new Account(client) };
+}

@@ -18,6 +18,7 @@ cp .env.example .env.local
 pnpm install
 pnpm db:generate
 pnpm db:migrate
+pnpm db:seed
 pnpm dev
 ```
 
@@ -68,6 +69,10 @@ environment file.
 
 Browser SDK helpers live in `src/lib/appwrite/client.ts`; server-only admin and
 session helpers live in `src/lib/appwrite/server.ts`.
+
+Authenticated API writes use short-lived Appwrite JWTs in the `Authorization`
+header and require `X-LegisCore-Institution-Id`. PostgreSQL role assignments are
+checked again inside the data-access layer before any mutation.
 
 ## Current implementation milestone
 
