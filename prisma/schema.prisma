@@ -191,6 +191,14 @@ enum CorrespondenceDirection {
   OUTGOING
 }
 
+enum CorrespondenceStatus {
+  REGISTERED
+  ASSIGNED
+  DRAFTING_RESPONSE
+  RESPONDED
+  ARCHIVED
+}
+
 model Institution {
   id          String          @id @default(cuid())
   name        String
@@ -270,6 +278,7 @@ model User {
   meetingParticipation MeetingParticipant[]
   recordedMinutes MeetingMinutes[]
   approvalSteps    ApprovalStep[]
+  assignedCorrespondence Correspondence[] @relation("CorrespondenceAssignee")
   auditEvents      AuditEvent[] @relation("AuditEventActor")
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
@@ -1045,12 +1054,22 @@ model Correspondence {
   referenceNumber String
   direction CorrespondenceDirection
   subject String
+  senderOrRecipient String
+  summary String?
   classification AccessLevel @default(INSTITUTIONAL)
+  status CorrespondenceStatus @default(REGISTERED)
+  assignedToId String?
   receivedOrSentAt DateTime
   responseDueAt DateTime?
+  responseDraft String?
   archivedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  assignedTo User? @relation("CorrespondenceAssignee", fields: [assignedToId], references: [id])
   @@unique([institutionId, referenceNumber])
+  @@index([institutionId, status, responseDueAt])
+  @@index([assignedToId, status])
 }
 
 model DepartmentWorkspace {
