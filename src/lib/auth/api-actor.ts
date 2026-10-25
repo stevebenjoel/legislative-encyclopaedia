@@ -18,23 +18,25 @@ export class ApiAccessError extends Error {
   }
 }
 
-export async function requireApiActor(request: NextRequest): Promise<ApiActor> {
+export async function requireAppwriteIdentity(request: NextRequest) {
   const authorization = request.headers.get("authorization");
-  const institutionId = request.headers.get("x-legiscore-institution-id")?.trim();
   if (!authorization?.startsWith("Bearer ")) {
     throw new ApiAccessError(401, "AUTHENTICATION_REQUIRED", "An Appwrite JWT is required.");
   }
-  if (!institutionId) {
-    throw new ApiAccessError(403, "INSTITUTION_REQUIRED", "Select an institutional workspace.");
-  }
-
-  let appwriteUserId: string;
   try {
     const { account } = createJwtAppwrite(authorization.slice(7));
-    appwriteUserId = (await account.get()).$id;
+    return (await account.get()).$id;
   } catch {
     throw new ApiAccessError(401, "INVALID_SESSION", "The Appwrite session is invalid or expired.");
   }
+}
+
+export async function requireApiActor(request: NextRequest): Promise<ApiActor> {
+  const institutionId = request.headers.get("x-legiscore-institution-id")?.trim();
+  if (!institutionId) {
+    throw new ApiAccessError(403, "INSTITUTION_REQUIRED", "Select an institutional workspace.");
+  }
+  const appwriteUserId = await requireAppwriteIdentity(request);
 
   const assignment = await getDatabase().roleAssignment.findFirst({
     where: {
