@@ -32,3 +32,8 @@ export function can(role: PlatformRole, permission: Permission) {
 export function canAccessInstitution(role: PlatformRole, assignedInstitutionId: string, requestedInstitutionId: string) {
   return role === "SUPER_ADMIN" || assignedInstitutionId === requestedInstitutionId;
 }
+
+export function canGrantRole(granter: PlatformRole, target: PlatformRole) {
+  if (granter === "SUPER_ADMIN") return true;
+  return granter === "INSTITUTION_ADMIN" && !["SUPER_ADMIN", "INSTITUTION_ADMIN"].includes(target);
+}

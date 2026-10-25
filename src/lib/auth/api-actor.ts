@@ -18,17 +18,21 @@ export class ApiAccessError extends Error {
   }
 }
 
-export async function requireAppwriteIdentity(request: NextRequest) {
+export async function requireAppwriteAccount(request: NextRequest) {
   const authorization = request.headers.get("authorization");
   if (!authorization?.startsWith("Bearer ")) {
     throw new ApiAccessError(401, "AUTHENTICATION_REQUIRED", "An Appwrite JWT is required.");
   }
   try {
     const { account } = createJwtAppwrite(authorization.slice(7));
-    return (await account.get()).$id;
+    return await account.get();
   } catch {
     throw new ApiAccessError(401, "INVALID_SESSION", "The Appwrite session is invalid or expired.");
   }
+}
+
+export async function requireAppwriteIdentity(request: NextRequest) {
+  return (await requireAppwriteAccount(request)).$id;
 }
 
 export async function requireApiActor(request: NextRequest): Promise<ApiActor> {
