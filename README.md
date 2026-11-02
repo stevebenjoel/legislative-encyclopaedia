@@ -54,6 +54,10 @@ Copy `.env.example` and fill in values when the Appwrite project is available.
 | `APPWRITE_LEGISLATION_COLLECTION_ID` | Server only | Legislation collection ID |
 | `APPWRITE_LEGISLATORS_COLLECTION_ID` | Server only | Legislators collection ID |
 | `APPWRITE_STORAGE_BUCKET_ID` | Server only | Documents/media bucket ID |
+| `OPENROUTER_API_KEY` | Server only, secret | OpenRouter model access |
+| `OPENROUTER_MODEL` | Server only | AI model slug; defaults to `qwen/qwen3.8-27b` |
+| `OPENROUTER_BASE_URL` | Server only | OpenRouter API base URL |
+| `OPENROUTER_APP_NAME` | Server only | Application attribution header |
 
 Never expose `APPWRITE_API_KEY` with a `NEXT_PUBLIC_` prefix or commit a populated
 environment file.
@@ -88,6 +92,7 @@ Implemented and tested:
 - Comprehensive initial Prisma schema covering the entities in the master brief.
 - Demonstration-only records with explicit non-official labels.
 - AI workspace safety boundary pending provider and corpus approval.
+- Governed OpenRouter chat integration using `qwen/qwen3.8-27b`, activated by server configuration.
 - AI Copilot launcher, guarded research workspace and bill-drafting brief.
 - Performance dashboard with verification, coverage and exclusion disclosures.
 - Smart Workflow dashboard and tested task state-transition rules.

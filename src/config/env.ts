@@ -16,6 +16,10 @@ export const serverEnv = {
   legislationCollectionId: read("APPWRITE_LEGISLATION_COLLECTION_ID"),
   legislatorsCollectionId: read("APPWRITE_LEGISLATORS_COLLECTION_ID"),
   storageBucketId: read("APPWRITE_STORAGE_BUCKET_ID"),
+  openRouterApiKey: read("OPENROUTER_API_KEY"),
+  openRouterModel: read("OPENROUTER_MODEL") || "qwen/qwen3.8-27b",
+  openRouterBaseUrl: read("OPENROUTER_BASE_URL") || "https://openrouter.ai/api/v1",
+  openRouterAppName: read("OPENROUTER_APP_NAME") || "LegisCore Nigeria",
 };
 
 export const isAppwriteConfigured = Boolean(

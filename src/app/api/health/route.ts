@@ -10,6 +10,8 @@ export function GET() {
       service: "legislative-encyclopaedia",
       appwriteConfigured: isAppwriteConfigured,
       databaseConfigured: Boolean(serverEnv.databaseUrl),
+      aiProviderConfigured: Boolean(serverEnv.openRouterApiKey),
+      aiModel: serverEnv.openRouterModel,
       timestamp: new Date().toISOString(),
     },
     { headers: { "Cache-Control": "no-store" } },
